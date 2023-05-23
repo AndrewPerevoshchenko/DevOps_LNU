@@ -1,0 +1,86 @@
+version: '3'
+
+services:
+
+  mysql_master:
+
+    image: mysql
+
+    env_file:
+
+      - ./master/master.env
+
+    container_name: "mysql_master"
+
+    ports:
+
+      - 4406:3306
+
+    volumes:
+
+      - ./master/configuration/mysql.conf.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+
+      - ./master/data:/var/lib/mysql
+
+  mysqlSlave:
+
+    image: mysql
+
+    env_file:
+
+      - ./slave/slave.env
+
+    container_name: "mysqlSlave"
+     
+    ports:
+
+      - 5506:3306
+
+    depends_on:
+
+      - mysql_master
+
+    volumes:
+
+      - ./slave/configuration/mysql.conf.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+
+      - ./slave/data:/var/lib/mysql
+
+  CheckMySql:
+
+    image: mysql_checker
+
+    build:
+
+      context: .
+
+      dockerfile: .\Dockerfile
+
+    ports:
+
+      - 3000:3000
+
+    volumes:
+
+          - ./db-data:/var/lib/mysql
+          - ./output:/output
+
+    depends_on:
+
+      - mysql_master
+
+      - mysqlSlave
+  jenkins:
+    image: "jenkins/jenkins:lts"
+    privileged: true
+    user: "root"
+    ports:
+      - "0000:0000"
+      - "3000:3000"
+    dns:
+      - 1.1.1.1
+    volumes:
+      - "./jenkins:/var/jenkins_home"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/etc/resolv.conf:/etc/resolv.conf"
+      - "/usr/bin/docker:/usr/bin/docker"    
